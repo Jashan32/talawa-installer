@@ -37,23 +37,109 @@ error()   { echo -e "${RED}[ERROR]${NC} $*"; }
 header()  { echo -e "\n${BOLD}$*${NC}\n"; }
 
 ###############################################################################
+# Enable Nix experimental features
+###############################################################################
+enable_nix_features() {
+  info "Ensuring Nix experimental features are enabled..."
+
+  local NIX_CONF="$HOME/.config/nix/nix.conf"
+
+  mkdir -p "$(dirname "$NIX_CONF")"
+  touch "$NIX_CONF"
+
+  if grep -q "^experimental-features" "$NIX_CONF"; then
+    if ! grep -q "^experimental-features.*nix-command.*flakes" "$NIX_CONF"; then
+      sed -i '/^experimental-features/s/$/ nix-command flakes/' "$NIX_CONF"
+    fi
+  else
+    echo "experimental-features = nix-command flakes" >> "$NIX_CONF"
+  fi
+
+  success "Nix experimental features are enabled."
+}
+
+###############################################################################
 # 1. Check for Nix
 ###############################################################################
 check_nix() {
   header "Checking for Nix..."
 
-  if command -v nix &>/dev/null; then
+  # Nix already installed
+  if command -v nix >/dev/null 2>&1; then
     success "Nix is installed: $(nix --version)"
-  else
-    error "Nix is not installed on this machine."
-    echo ""
-    echo "Please install Nix by running the following command in your terminal:"
-    echo ""
-    echo -e "  ${BOLD}sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --no-daemon${NC}"
-    echo ""
-    echo "After installing Nix, restart your terminal and re-run this installer."
-    exit 1
+    enable_nix_features
+    return
   fi
+
+  warn "Nix is not installed."
+  echo ""
+  echo "Talawa Installer requires Nix to manage dependencies."
+  echo ""
+
+  while true; do
+    read -rp "Would you like to install Nix now? [Y/n]: " INSTALL_NIX
+
+    case "${INSTALL_NIX:-Y}" in
+      [Yy]* )
+        info "Installing Nix..."
+        echo ""
+
+        if ! command -v curl >/dev/null 2>&1; then
+          error "curl is required to install Nix."
+          exit 1
+        fi
+
+        if ! sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --no-daemon; then
+          error "Nix installation failed."
+          exit 1
+        fi
+
+        info "Loading Nix environment..."
+
+        # Load whichever profile exists
+        if [ -f "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh" ]; then
+          . "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
+        elif [ -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
+          . "$HOME/.nix-profile/etc/profile.d/nix.sh"
+        elif [ -f "$HOME/.nix-profile/etc/profile.d/nix-daemon.sh" ]; then
+          . "$HOME/.nix-profile/etc/profile.d/nix-daemon.sh"
+        fi
+
+        # Verify that nix is now available
+        if command -v nix >/dev/null 2>&1; then
+          success "Nix installed successfully: $(nix --version)"
+          enable_nix_features
+          return
+        fi
+
+        warn "Nix was installed but is not available in the current shell."
+        warn "Please restart your terminal and rerun:"
+        echo ""
+        echo -e "  ${BOLD}./install.sh${NC}"
+        echo ""
+        exit 1
+        ;;
+
+      [Nn]* )
+        echo ""
+        info "Nix installation skipped."
+        echo ""
+        echo "Install Nix manually by running:"
+        echo ""
+        echo -e "  ${BOLD}sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --no-daemon${NC}"
+        echo ""
+        echo "Then rerun:"
+        echo ""
+        echo -e "  ${BOLD}./install.sh${NC}"
+        echo ""
+        exit 1
+        ;;
+
+      * )
+        warn "Please enter Y or N."
+        ;;
+    esac
+  done
 }
 
 ###############################################################################
@@ -241,6 +327,7 @@ setup_api_and_admin() {
   # directory where the repos are cloned.
   (
     cd "$INSTALLER_DIR"
+    export NIXPKGS_ALLOW_INSECURE=1
     nix-shell "$DEFAULT_NIX" --run "
       echo ''
       echo '--- Installing dependencies ---'
@@ -441,6 +528,7 @@ AUTOSTART
     # will start PG, Redis, MinIO, and (via the autostart marker) the API and
     # Admin dev servers automatically.
     cd "$INSTALLER_DIR"
+    export NIXPKGS_ALLOW_INSECURE=1
     exec nix-shell "$INSTALLER_DIR/default.nix"
   elif [ "$INSTALL_MOBILE" = true ]; then
     # Mobile-only install — drop into the flake dev shell
