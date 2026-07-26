@@ -1,0 +1,6 @@
+# Ignore Talawa source code trees
+/talawa
+/talawa-admin
+/talawa-api
+/talawa-docs
+/talawa-plugin
