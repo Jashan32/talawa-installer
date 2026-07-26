@@ -1,4 +1,5 @@
 # Ignore Talawa source code trees
+/schematic-master
 /talawa
 /talawa-admin
 /talawa-api
