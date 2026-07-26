@@ -1,7 +1,10 @@
 # Ignore Talawa source code trees
-/schematic-master
 /talawa
 /talawa-admin
 /talawa-api
 /talawa-docs
 /talawa-plugin
+
+# NIX working directories
+/schematic-master
+/.local
