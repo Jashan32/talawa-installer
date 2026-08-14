@@ -165,7 +165,30 @@ prompt_option() {
 }
 
 ###############################################################################
-# 3. Ensure repositories are cloned
+# 3. Prompt for Git branch
+###############################################################################
+prompt_branch() {
+  header "Which Git branch would you like to use?"
+
+  echo "  1) main"
+  echo "  2) develop"
+  echo ""
+
+  while true; do
+    read -rp "Enter your choice [1/2]: " BRANCH_CHOICE
+    case "$BRANCH_CHOICE" in
+      1) SELECTED_BRANCH="main"; break ;;
+      2) SELECTED_BRANCH="develop"; break ;;
+      *) warn "Invalid choice. Please enter 1 or 2." ;;
+    esac
+  done
+
+  success "Selected branch: $SELECTED_BRANCH"
+}
+
+
+###############################################################################
+# 4. Ensure repositories are cloned
 ###############################################################################
 ensure_repo() {
   local name="$1"
@@ -174,6 +197,17 @@ ensure_repo() {
 
   if [ -d "$dir" ] && [ -d "$dir/.git" ]; then
     success "$name already cloned at $dir"
+    (
+      cd "$dir"
+      git fetch origin
+      if git show-ref --verify --quiet "refs/remotes/origin/$SELECTED_BRANCH"; then
+        git checkout "$SELECTED_BRANCH"
+        git pull --ff-only origin "$SELECTED_BRANCH"
+      else
+        error "$name does not have a remote '$SELECTED_BRANCH' branch."
+        exit 1
+      fi
+    )
   elif [ -d "$dir" ] && [ ! -d "$dir/.git" ]; then
     # Directory exists but is not a git repo — could be a plain copy
     warn "$name directory exists at $dir but is not a git repository."
@@ -195,8 +229,8 @@ ensure_repo() {
       exit 1
     fi
     info "Cloning $name..."
-    git clone "$url" "$dir"
-    success "$name cloned successfully."
+    git clone --branch "$SELECTED_BRANCH" "$url" "$dir"
+    success "$name cloned successfully on branch '$SELECTED_BRANCH'."
   fi
 }
 
@@ -215,7 +249,7 @@ check_repos() {
 }
 
 ###############################################################################
-# 4. Schematic setup (for PostgreSQL)
+# 5. Schematic setup (for PostgreSQL)
 ###############################################################################
 setup_schematic() {
   header "Setting up Schematic (PostgreSQL manager)..."
@@ -302,7 +336,7 @@ SRVNIX
 }
 
 ###############################################################################
-# 5. Set up Talawa-API and Talawa-Admin via nix-shell (default.nix)
+# 6. Set up Talawa-API and Talawa-Admin via nix-shell (default.nix)
 ###############################################################################
 setup_api_and_admin() {
   header "Setting up Talawa-API and Talawa-Admin..."
@@ -361,7 +395,7 @@ setup_api_and_admin() {
 }
 
 ###############################################################################
-# 6. Set up Talawa-Mobile
+# 7. Set up Talawa-Mobile
 ###############################################################################
 setup_mobile() {
   header "Setting up Talawa-Mobile..."
@@ -473,7 +507,10 @@ main() {
   # Step 2: Prompt for what to install
   prompt_option
 
-  # Step 3: Check repositories
+  # Step 3: Prompt for Git branch
+  prompt_branch
+
+  # Step 4: Check repositories
   check_repos
 
   # Step 4 & 5: Set up API/Admin if selected
