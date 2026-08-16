@@ -42,11 +42,29 @@ Prompts you to choose what to install:
 
 The API is always included because both frontends depend on it.
 
-### 3. Repository check
+### 3. Git branch selection
+
+Before cloning or updating the selected repositories, the installer prompts you to choose the Git branch:
+
+1. **main**
+2. **develop**
+
+If a repository already exists, the installer fetches the remote branches, checks out the selected branch, and pulls the latest changes. If a repository is cloned during installation, it is cloned directly on the selected branch.
+
+### 4. Sample data selection
+
+When the API is being installed, the installer asks whether to load sample data:
+
+1. **Yes** — loads the sample data after database migrations
+2. **No** — skips sample data loading
+
+Sample data is loaded with `pnpm run add:sample_data` after the API's Drizzle migrations have been applied.
+
+### 5. Repository check
 
 For each selected component, the installer looks for the corresponding repository in the parent directory (`talawa-api/`, `talawa-admin/`, `talawa/`). If a repo is missing, it offers to `git clone` it from the Palisadoes Foundation GitHub.
 
-### 4. Schematic + database setup (API/Admin path)
+### 6. Schematic + database setup (API/Admin path)
 
 [Schematic](https://gitlab.com/deltaex/schematic) is a Nix-based PostgreSQL manager used to provision the database.
 
@@ -54,7 +72,7 @@ For each selected component, the installer looks for the corresponding repositor
 - It looks for an existing server definition under `schematic-master/srv/`. If one is found, it runs `scm upgrade` and `scm start` via `nix develop` to bring the database up.
 - If no server exists, it creates a new one and starts it.
 
-### 5. Services and environment (API/Admin path)
+### 7. Services and environment (API/Admin path)
 
 The installer enters the root `default.nix` via `nix-shell`, which:
 
@@ -64,7 +82,7 @@ The installer enters the root `default.nix` via `nix-shell`, which:
 - Runs `pnpm install` in both packages
 - Applies Drizzle database migrations for the API
 
-### 6. Mobile setup
+### 8. Mobile setup
 
 If Talawa-Mobile was selected, the installer asks whether you want to develop with:
 
@@ -73,7 +91,7 @@ If Talawa-Mobile was selected, the installer asks whether you want to develop wi
 
 Either path sets up Flutter, the Android SDK, and Java, then runs `flutter pub get` in the mobile repo.
 
-### 7. Auto-starting the development servers
+### 9. Auto-starting the development servers
 
 Once dependencies are installed, the installer drops you directly into an interactive `nix-shell` with the dev servers already running in the background:
 
@@ -120,10 +138,32 @@ cd talawa-admin && pnpm run serve
 
 After installation, the API is pre-configured with:
 
-| Field    | Value                          |
-|----------|--------------------------------|
-| Email    | `administrator@example.com`    |
-| Password | `password`                     |
+| Field    | Value                       |
+| -------- | --------------------------- |
+| Email    | `administrator@example.com` |
+| Password | `password`                  |
+
+## Sample Data Users
+
+Below is a table of user login credentials for the sample data.
+
+| **Name**       | **Email Address**          | **Password** | **Role**      |
+| -------------- | -------------------------- | ------------ | ------------- |
+| Wilt Shepherd  | testsuperadmin@example.com | Pass@123     | administrator |
+| Vyvyan Kerry   | testadmin1@example.com     | Pass@123     | administrator |
+| Loyd Solomon   | testadmin2@example.com     | Pass@123     | administrator |
+| Darcy Wilf     | testadmin3@example.com     | Pass@123     | administrator |
+| Harve Lance    | testuser1@example.com      | Pass@123     | regular       |
+| Praise Norris  | testuser2@example.com      | Pass@123     | regular       |
+| Scott Tony     | testuser3@example.com      | Pass@123     | regular       |
+| Teresa Bradley | testuser4@example.com      | Pass@123     | regular       |
+| Bruce Garza    | testuser5@example.com      | Pass@123     | regular       |
+| Burton Sanders | testuser6@example.com      | Pass@123     | regular       |
+| Jeramy Garcia  | testuser7@example.com      | Pass@123     | regular       |
+| Deanne Marks   | testuser8@example.com      | Pass@123     | regular       |
+| Romeo Holland  | testuser9@example.com      | Pass@123     | regular       |
+| Carla Nguyen   | testuser10@example.com     | Pass@123     | regular       |
+| Peggy Bowers   | testuser11@example.com     | Pass@123     | regular       |
 
 ## Project layout
 
